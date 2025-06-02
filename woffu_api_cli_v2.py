@@ -264,10 +264,29 @@ class HttpTemplateProcessor:
 def filter_diaries(diaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Filter diaries based on the specified criteria."""
     filtered = []
+    today = datetime.now().date()
 
     logger.info(f"Filtering {len(diaries)} diaries")
+    logger.info(f"Today is {today}, will only process entries before today")
 
+    # First filter: only keep diaries before today
+    diaries_before_today = []
     for diary in diaries:
+        diary_date_str = diary.get('date')
+        try:
+            diary_date = datetime.strptime(diary_date_str, "%Y-%m-%d").date()
+            if diary_date >= today:
+                logger.info(f"Skipping diary for {diary_date_str} as it's not before today")
+                continue
+            diaries_before_today.append(diary)
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid or missing date format in diary: {diary_date_str}")
+            continue
+
+    logger.info(f"Found {len(diaries_before_today)} diaries before today out of {len(diaries)} total days")
+
+    # Second filter: check if it's a flexible schedule day that needs to be filled
+    for diary in diaries_before_today:
         # Make sure the diary has all the fields we need before accessing them
         if not all(key in diary for key in ['in', 'out', 'isHoliday', 'isWeekend']):
             logger.warning(f"Diary missing required fields: {diary}")
@@ -288,7 +307,7 @@ def filter_diaries(diaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             logger.info(f"Found flexible schedule for date {diary.get('date')}")
             filtered.append(diary)
 
-    logger.info(f"Found {len(filtered)} flexible schedule days out of {len(diaries)} total days")
+    logger.info(f"Found {len(filtered)} flexible schedule days before today that need to be filled")
     return filtered
 
 
@@ -453,4 +472,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

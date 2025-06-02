@@ -11,8 +11,8 @@ A Python CLI tool for automating Woffu API interactions to manage flexible work 
    cd WoffuAutomatizer
 
    # Create and activate a virtual environment (recommended)
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python3 -m venv venv
+   source venv/bin/activate
 
    # Make script executable
    chmod +x woffu_api_cli_v2.py
