@@ -1,0 +1,46 @@
+PUT https://aetion.woffu.com/api/diaries/DIARY_ID/workday/slots/self
+Authorization: Bearer TOKEN_PLACEHOLDER
+Content-Type: application/json
+
+{
+  "userId": 0,
+  "date": "2025-06-01",
+  "diaryId": "DIARY_ID",
+  "slots": [
+      {
+          "motive": null,
+          "in": {
+              "new": true,
+              "deleted": false,
+              "agreementEventId": null,
+              "code": null,
+              "iP": null,
+              "requestId": null,
+              "signId": 0,
+              "signStatus": 1,
+              "signType": 3,
+              "time": "08:00:00",
+              "deviceId": null,
+              "signIn": true,
+              "userId": 0
+          },
+          "out": {
+              "new": true,
+              "deleted": false,
+              "agreementEventId": null,
+              "code": null,
+              "iP": null,
+              "requestId": null,
+              "signId": 0,
+              "signStatus": 1,
+              "signType": 3,
+              "time": "17:00:00",
+              "deviceId": null,
+              "signIn": false,
+              "userId": 0
+          },
+          "order": 1,
+          "totalMin": 540
+      }
+  ]
+}
