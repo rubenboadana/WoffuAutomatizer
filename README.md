@@ -28,7 +28,6 @@ A Python CLI tool for automating Woffu API interactions to manage flexible work 
 | Option | Description |
 |--------|-------------|
 | `--token`, `-t` | **Required.** JWT Bearer token for authentication |
-| `--template`, `-temp` | HTTP template file path |
 | `--year`, `-y` | Year to check (defaults to current) |
 | `--month`, `-m` | Month to check (defaults to current) |
 | `--execute`, `-e` | Execute the generated HTTP requests |
