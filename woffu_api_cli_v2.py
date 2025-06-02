@@ -331,6 +331,96 @@ def setup_output_directory(base_dir: str) -> str:
 
     return output_dir
 
+def execute_http_request(file_path: str) -> Tuple[bool, str]:
+   """Execute an HTTP request file using curl.
+
+   Args:
+       file_path: Path to the HTTP request file to execute
+
+   Returns:
+       A tuple containing (success_flag, result_or_error_message)
+   """
+   try:
+       # Parse the HTTP request file
+       with open(file_path, 'r') as f:
+           content = f.read()
+
+       # Split the content into headers and body
+       parts = content.split('\n\n', 1)
+       if len(parts) < 2:
+           logger.error(f"Invalid HTTP request format in {file_path} - missing body")
+           return False, "Invalid HTTP request format: missing body"
+
+       header_section, body = parts
+       header_lines = header_section.split('\n')
+
+       # Extract method and URL from the first line
+       method = "POST"  # Default method
+       url = None
+       for i, line in enumerate(header_lines):
+           if i == 0 and line.startswith('//'):  # Skip comment line
+               continue
+           if i <= 1 and ' ' in line and not line.startswith('//') and not line.startswith('#'):
+               parts = line.split(' ', 1)
+               method = parts[0]
+               url = parts[1]
+               logger.debug(f"Extracted method: {method}, URL: {url}")
+               break
+
+       if not url:
+           logger.error(f"Could not extract URL from {file_path}")
+           return False, "Could not extract URL from HTTP file"
+
+       # Extract headers
+       headers = []
+       for line in header_lines:
+           if ': ' in line and not line.startswith('//') and not line.startswith('#'):
+               headers.append(f"-H '{line}'")
+
+       # Create a temporary file for the body
+       import tempfile
+       body_file = tempfile.NamedTemporaryFile(delete=False, mode='w')
+
+       try:
+           # Write body to temp file
+           body_file.write(body)
+           body_file.close()
+
+           # Build curl command with headers and body
+           curl_cmd = f"curl -s -S -i -X {method} {' '.join(headers)} -d @{body_file.name} '{url}'"
+
+           logger.debug(f"Executing curl command: {curl_cmd}")
+
+           # Execute the curl command
+           result = subprocess.run(
+               curl_cmd,
+               shell=True,
+               capture_output=True,
+               text=True,
+               check=False
+           )
+
+           logger.debug(result)
+           # Check if the request was successful
+           if result.returncode == 0 and ("200 OK" in result.stdout or "201 Created" in result.stdout or "204" in result.stdout):
+               return True, result.stdout
+           else:
+               error_msg = result.stderr if result.stderr else result.stdout
+               logger.error(f"Curl command failed: {error_msg}")
+               return False, error_msg
+
+       finally:
+           # Clean up the temporary body file
+           try:
+               os.unlink(body_file.name)
+           except Exception as e:
+               logger.warning(f"Failed to delete temporary file: {e}")
+
+   except Exception as e:
+       logger.error(f"Error executing HTTP request: {e}")
+       return False, str(e)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Generate Woffu API HTTP requests for flexible schedule days')
     parser.add_argument('--token', '-t', required=True,
