@@ -261,32 +261,50 @@ class HttpTemplateProcessor:
 
         return output_path
 
-def filter_diaries(diaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def filter_diaries(diaries: List[Dict[str, Any]], today_only: bool = False) -> List[Dict[str, Any]]:
     """Filter diaries based on the specified criteria."""
     filtered = []
     today = datetime.now().date()
 
     logger.info(f"Filtering {len(diaries)} diaries")
-    logger.info(f"Today is {today}, will only process entries before today")
 
-    # First filter: only keep diaries before today
-    diaries_before_today = []
-    for diary in diaries:
-        diary_date_str = diary.get('date')
-        try:
-            diary_date = datetime.strptime(diary_date_str, "%Y-%m-%d").date()
-            if diary_date >= today:
-                logger.info(f"Skipping diary for {diary_date_str} as it's not before today")
+    if today_only:
+        logger.info(f"Today-only mode: will only process today's entry ({today})")
+        target_diaries = []
+        for diary in diaries:
+            diary_date_str = diary.get('date')
+            try:
+                diary_date = datetime.strptime(diary_date_str, "%Y-%m-%d").date()
+                if diary_date == today:
+                    target_diaries.append(diary)
+                    break  # Only need today's entry
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid or missing date format in diary: {diary_date_str}")
                 continue
-            diaries_before_today.append(diary)
-        except (ValueError, TypeError):
-            logger.warning(f"Invalid or missing date format in diary: {diary_date_str}")
-            continue
 
-    logger.info(f"Found {len(diaries_before_today)} diaries before today out of {len(diaries)} total days")
+        if not target_diaries:
+            logger.info(f"No diary entry found for today ({today})")
+            return []
+    else:
+        logger.info(f"Today is {today}, will only process entries before today")
+        # First filter: only keep diaries before today
+        target_diaries = []
+        for diary in diaries:
+            diary_date_str = diary.get('date')
+            try:
+                diary_date = datetime.strptime(diary_date_str, "%Y-%m-%d").date()
+                if diary_date >= today:
+                    logger.info(f"Skipping diary for {diary_date_str} as it's not before today")
+                    continue
+                target_diaries.append(diary)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid or missing date format in diary: {diary_date_str}")
+                continue
+
+        logger.info(f"Found {len(target_diaries)} diaries before today out of {len(diaries)} total days")
 
     # Second filter: check if it's a flexible schedule day that needs to be filled
-    for diary in diaries_before_today:
+    for diary in target_diaries:
         # Make sure the diary has all the fields we need before accessing them
         if not all(key in diary for key in ['in', 'out', 'isHoliday', 'isWeekend']):
             logger.warning(f"Diary missing required fields: {diary}")
@@ -307,7 +325,10 @@ def filter_diaries(diaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             logger.info(f"Found flexible schedule for date {diary.get('date')}")
             filtered.append(diary)
 
-    logger.info(f"Found {len(filtered)} flexible schedule days before today that need to be filled")
+    if today_only:
+        logger.info(f"Found {len(filtered)} flexible schedule entry for today that needs to be filled")
+    else:
+        logger.info(f"Found {len(filtered)} flexible schedule days before today that need to be filled")
     return filtered
 
 
@@ -436,6 +457,7 @@ def main():
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose logging')
     parser.add_argument('--debug', '-d', action='store_true', help='Enable debug mode (extra verbose)')
     parser.add_argument('--execute', '-e', action='store_true', help='Execute the generated HTTP requests')
+    parser.add_argument('--today', action='store_true', help='Process only today\'s entry (if it\'s a flexible schedule day)')
 
     args = parser.parse_args()
 
@@ -499,7 +521,7 @@ def main():
             logger.debug(f"Sample diary: {json.dumps(monthly_diaries[0], indent=2)}")
 
         # Filter diaries based on criteria
-        filtered_diaries = filter_diaries(monthly_diaries)
+        filtered_diaries = filter_diaries(monthly_diaries, args.today)
 
         if not filtered_diaries:
             logger.info("No flexible schedule days found that need to be filled")
@@ -562,5 +584,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
