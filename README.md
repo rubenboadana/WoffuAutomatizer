@@ -144,24 +144,48 @@ python3 woffu_api_cli_v2.py --token "your_jwt_token" --year 2025 --month 10 --ex
 
 ## GitHub Actions Integration
 
-For automated daily execution, store your JWT token as a GitHub secret (`WOFFU_JWT`) and create a workflow:
+**This project already includes a GitHub Actions workflow!** The workflow is configured to run automatically at 7PM UTC, Monday through Friday.
 
-```yaml
-name: Daily Woffu Automation
-on:
-  schedule:
-    - cron: '0 9 * * 1-5'  # 9 AM, Monday-Friday
-  workflow_dispatch:
+### Quick Setup
 
-jobs:
-  fill-timesheet:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Fill today's timesheet
-        run: |
-          python3 woffu_api_cli_v2.py --token "${{ secrets.WOFFU_JWT }}" --today --execute --verbose
+1. **Add your JWT token as a repository secret:**
+   - Go to your repository on GitHub
+   - Navigate to **Settings** > **Secrets and variables** > **Actions**
+   - Click **"New repository secret"**
+   - Name: `WOFFU_JWT`
+   - Value: Your actual JWT token from Woffu
+
+2. **That's it!** The workflow will automatically:
+   - Run every weekday at 7PM UTC
+   - Check if today is a flexible schedule day
+   - Fill your timesheet if needed
+   - Show detailed logs of the process
+
+### Manual Execution
+
+You can also trigger the workflow manually:
+- Go to the **Actions** tab in your repository
+- Find **"Daily Woffu Automation"**
+- Click **"Run workflow"**
+
+### Workflow Details
+
+The included workflow (`.github/workflows/daily-woffu-automation.yml`) runs:
+
+```bash
+python3 woffu_api_cli_v2.py --token "${{ secrets.WOFFU_JWT }}" --today --execute --verbose
 ```
+
+**Schedule:** 7PM UTC, Monday-Friday (adjust timezone as needed):
+- **EST/EDT**: 2PM/3PM
+- **CET/CEST**: 8PM/9PM
+- **PST/PDT**: 11AM/12PM
+
+**Features:**
+- Automatic JWT secret validation
+- Only processes today's entry (fast execution)
+- Uploads debug files if something goes wrong
+- Verbose logging for transparency
 
 ## Security Notes
 
